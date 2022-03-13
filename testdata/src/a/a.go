@@ -15,7 +15,7 @@ func f() {
 
 	hoge() // want "NG"
 
-	_ = hoge() //want "NG"
+	_ = hoge() //want "blank error"
 
 	log.Println(hoge())
 
@@ -30,7 +30,7 @@ func f() {
 
 	fmt.Println("Hello")
 
-	i2, _ := hoge2() // want "NG"
+	i2, _ := hoge2() // want "blank error"
 	log.Println(i2)
 }
 
