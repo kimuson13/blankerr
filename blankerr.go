@@ -41,6 +41,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 	nodeFilter := []ast.Node{
 		(*ast.AssignStmt)(nil),
+		(*ast.CallExpr)(nil),
 		(*ast.File)(nil),
 		(*ast.Ident)(nil),
 	}
@@ -55,16 +56,38 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			return !isGenerated(n)
 
 		case *ast.AssignStmt:
+			sl := make(map[int]int)
 			for _, l := range n.Lhs {
-				switch n := l.(type) {
+				switch ln := l.(type) {
 				case *ast.Ident:
 					typ := pass.TypesInfo.TypeOf(l)
-					if n.Name == "_" {
+					if ln.Name == "_" {
 						if isErrorType(typ) {
 							pass.Reportf(n.Pos(), "blank error")
+							return false
+						}
+
+						if types.Identical(typ, nil) {
+							for _, r := range n.Rhs {
+								if rl, ok := r.(*ast.CallExpr); ok {
+									if ro, ok := rl.Fun.(*ast.Ident); ok {
+										if rd, ok := ro.Obj.Decl.(*ast.FuncDecl); ok {
+											for i, t := range rd.Type.Results.List {
+												typ2 := pass.TypesInfo.TypeOf(t.Type)
+												if isErrorType(typ2) {
+													sl[i]++
+												}
+											}
+										}
+									}
+								}
+							}
 						}
 					}
 				}
+			}
+			for i := range sl {
+				pass.Reportf(n.Lhs[i].Pos(), "blank error")
 			}
 			return false
 		}

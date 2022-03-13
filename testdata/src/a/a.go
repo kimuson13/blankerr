@@ -32,6 +32,14 @@ func f() {
 
 	i2, _ := hoge2() // want "blank error"
 	log.Println(i2)
+
+	_, _ = hoge2() // want "blank error"
+
+	_, _ = hoge3() // want "blank error"
+
+	_, _ = hoge(), hoge() // want "blank error"
+
+	_, _ = hoge(), hoge4() // want "blank error"
 }
 
 func hoge() error {
@@ -40,4 +48,12 @@ func hoge() error {
 
 func hoge2() (int, error) {
 	return 0, nil
+}
+
+func hoge3() (error, int) {
+	return nil, 0
+}
+
+func hoge4() int {
+	return 0
 }
