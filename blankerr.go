@@ -58,10 +58,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		case *ast.AssignStmt:
 			sl := make(map[int]int)
 			for _, l := range n.Lhs {
-				switch ln := l.(type) {
-				case *ast.Ident:
+				if leftIdent, ok := l.(*ast.Ident); ok {
 					typ := pass.TypesInfo.TypeOf(l)
-					if ln.Name == "_" {
+					if leftIdent.Name == "_" {
 						if isErrorType(typ) {
 							pass.Reportf(n.Pos(), "blank error")
 							return false
@@ -69,15 +68,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 						if types.Identical(typ, nil) {
 							for _, r := range n.Rhs {
-								if rl, ok := r.(*ast.CallExpr); ok {
-									if ro, ok := rl.Fun.(*ast.Ident); ok {
-										if rd, ok := ro.Obj.Decl.(*ast.FuncDecl); ok {
-											for i, t := range rd.Type.Results.List {
-												typ2 := pass.TypesInfo.TypeOf(t.Type)
-												if isErrorType(typ2) {
-													sl[i]++
-												}
-											}
+								if rd, ok := isCallingFuncDecl(r); ok {
+									for p, t := range rd.Type.Results.List {
+										if isErrorType(pass.TypesInfo.TypeOf(t.Type)) {
+											sl[p]++
 										}
 									}
 								}
@@ -109,4 +103,16 @@ func isErrorType(typ types.Type) bool {
 	}
 
 	return false
+}
+
+func isCallingFuncDecl(x ast.Expr) (*ast.FuncDecl, bool) {
+	if callExpr, ok := x.(*ast.CallExpr); ok {
+		if funcIdent, ok := callExpr.Fun.(*ast.Ident); ok {
+			if funcDecl, ok := funcIdent.Obj.Decl.(*ast.FuncDecl); ok {
+				return funcDecl, true
+			}
+		}
+	}
+
+	return nil, false
 }
