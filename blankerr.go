@@ -61,11 +61,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				if leftIdent, ok := l.(*ast.Ident); ok {
 					typ := pass.TypesInfo.TypeOf(l)
 					if leftIdent.Name == "_" {
-						if isErrorType(typ) {
-							pass.Reportf(n.Pos(), "blank error")
-							return false
-						}
-
 						if types.Identical(typ, nil) {
 							for _, r := range n.Rhs {
 								if rd, ok := isCallingFuncDecl(r); ok {
@@ -76,6 +71,11 @@ func run(pass *analysis.Pass) (interface{}, error) {
 									}
 								}
 							}
+						} else {
+							if isErrorType(typ) {
+								pass.Reportf(n.Pos(), "blank error")
+								return false
+							}
 						}
 					}
 				}
@@ -84,6 +84,22 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				pass.Reportf(n.Lhs[i].Pos(), "blank error")
 			}
 			return false
+
+		case *ast.CallExpr:
+			switch n := n.Fun.(type) {
+			case *ast.SelectorExpr:
+				if fn, ok := pass.TypesInfo.ObjectOf(n.Sel).(*types.Func); ok {
+					if s, ok := fn.Type().(*types.Signature); ok {
+						for i := 0; i < s.Results().Len(); i++ {
+							if isErrorType(s.Results().At(i).Type().Underlying()) {
+								pass.Reportf(n.Pos(), "%v has error type in return values", fn.FullName())
+							}
+						}
+					}
+				}
+			case *ast.Ident:
+				checkHasErrorReturnValue(pass, n)
+			}
 		}
 
 		return false
@@ -115,4 +131,15 @@ func isCallingFuncDecl(x ast.Expr) (*ast.FuncDecl, bool) {
 	}
 
 	return nil, false
+}
+
+func checkHasErrorReturnValue(pass *analysis.Pass, n *ast.Ident) {
+	if obj, ok := n.Obj.Decl.(*ast.FuncDecl); ok {
+		for _, v := range obj.Type.Results.List {
+			typ := pass.TypesInfo.TypeOf(v.Type)
+			if isErrorType(typ) {
+				pass.Reportf(n.Pos(), "%v has error type in return values", obj.Name)
+			}
+		}
+	}
 }

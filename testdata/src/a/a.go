@@ -13,7 +13,7 @@ func f() {
 		log.Println(err)
 	}
 
-	hoge() // want "NG"
+	hoge() // want "hoge has error type in return values"
 
 	_ = hoge() //want "blank error"
 
@@ -24,11 +24,11 @@ func f() {
 		log.Println(i, err)
 	}
 
-	hoge2() // want "NG"
+	hoge2() // want "hoge2 has error type in return values"
 
 	log.Println(hoge2())
 
-	fmt.Println("Hello")
+	fmt.Println("Hello") // want "fmt.Println has error type in return values"
 
 	i2, _ := hoge2() // want "blank error"
 	log.Println(i2)
