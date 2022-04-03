@@ -1,4 +1,4 @@
-# blankerr
+# blankerr [![Go Reference](https://pkg.go.dev/badge/github.com/kimuson13/blankerr.svg)](https://pkg.go.dev/github.com/kimuson13/blankerr)
 blankerr is check blank err return values and check call function without error handling
 ## Install
 ```
